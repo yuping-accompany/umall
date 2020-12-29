@@ -49,7 +49,7 @@
 
 <script>
 import { addMenu, editMenu, updateMenu } from "../../../utils/http";
-import { successAlert } from "../../../utils/alert";
+import { errAlert, successAlert } from "../../../utils/alert";
 import { secMenu } from "../../../router/index";
 export default {
   props: ["info", "list"],
@@ -76,8 +76,8 @@ export default {
   methods: {
     //弹框消失
     cancel() {
-      if(!this.info.addorupdate){
-        this.empty()
+      if (!this.info.addorupdate) {
+        this.empty();
       }
       this.info.isshow = false;
     },
@@ -92,18 +92,28 @@ export default {
         status: 1,
       };
     },
+    checkpre() {
+      return new Promise((resolve) => {
+        if (this.user.title === "") {
+          errAlert("菜单名称不能为空");
+        }
+        resolve();
+      });
+    },
     //确定按钮
     add() {
-      addMenu(this.user).then((res) => {
-        if (res.data.code == 200) {
-          successAlert(res.data.msg);
-        }
-        //弹框消失
-        this.cancel();
-        //界面初始化
-        this.empty();
-        //刷新界面
-        this.$emit("init");
+      this.checkpre().then(() => {
+        addMenu(this.user).then((res) => {
+          if (res.data.code == 200) {
+            successAlert(res.data.msg);
+          }
+          //弹框消失
+          this.cancel();
+          //界面初始化
+          this.empty();
+          //刷新界面
+          this.$emit("init");
+        });
       });
     },
     //顶级菜单判断
@@ -125,17 +135,19 @@ export default {
       });
     },
     update() {
-      updateMenu(this.user).then((res) => {
-        if (res.data.code === 200) {
-          //弹成功信息
-          successAlert(res.data.msg);
-          //弹框消失
-          this.cancel();
-          //user恢复原样
-          this.empty();
-          //刷新页面
-          this.$emit("init");
-        }
+      this.checkpre().then(() => {
+        updateMenu(this.user).then((res) => {
+          if (res.data.code === 200) {
+            //弹成功信息
+            successAlert(res.data.msg);
+            //弹框消失
+            this.cancel();
+            //user恢复原样
+            this.empty();
+            //刷新页面
+            this.$emit("init");
+          }
+        });
       });
     },
   },

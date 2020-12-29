@@ -28,13 +28,13 @@
 </template>
 
 <script>
-import { successAlert } from '../../../utils/alert';
-import { manageAdd, manageEdit, manageUpdate } from "../../../utils/http";
+import { errAlert, successAlert } from "../../../utils/alert";
+import {roleList, manageAdd, manageEdit, manageUpdate } from "../../../utils/http";
 export default {
   props: ["info"],
   data() {
     return {
-      list: JSON.parse(localStorage.getItem("isrole")),
+      list:[],
       user: {
         roleid: "",
         username: "",
@@ -46,8 +46,8 @@ export default {
   methods: {
     //取消
     cancel() {
-      if(!this.info.isadd){
-        this.empty()
+      if (!this.info.isadd) {
+        this.empty();
       }
       this.info.isshow = false;
     },
@@ -60,17 +60,36 @@ export default {
         status: 1,
       };
     },
+    checkpre() {
+      return new Promise((resolve) => {
+        if (this.user.roleid === "") {
+          errAlert("所属角色不能为空");
+          return;
+        }
+        if (this.user.username === "") {
+          errAlert("用户名不能为空");
+          return;
+        }
+        if (this.user.password === "") {
+          errAlert("密码不能为空");
+          return;
+        }
+        resolve();
+      });
+    },
     //添加
     add() {
-      manageAdd(this.user).then((res) => {
-        if (res.data.code === 200) {
-          //弹窗消失
-          this.info.isshow = false;
-          //清空
-          this.empty();
-          //刷新页面
-          this.$emit("init");
-        }
+      this.checkpre().then(() => {
+        manageAdd(this.user).then((res) => {
+          if (res.data.code === 200) {
+            //弹窗消失
+            this.info.isshow = false;
+            //清空
+            this.empty();
+            //刷新页面
+            this.$emit("init");
+          }
+        });
       });
     },
     //编辑
@@ -84,21 +103,27 @@ export default {
     },
     //更新
     update() {
-      manageUpdate(this.user).then((res) => {
-        if(res.data.code==200){
-          successAlert(res.data.msg)
-          //弹框消失
-          this.info.isshow=false
-          //内容清空
-          this.empty()
-          //刷新界面
-          this.$emit("init")
-        }
+      this.checkpre().then(() => {
+        manageUpdate(this.user).then((res) => {
+          if (res.data.code == 200) {
+            successAlert(res.data.msg);
+            //弹框消失
+            this.info.isshow = false;
+            //内容清空
+            this.empty();
+            //刷新界面
+            this.$emit("init");
+          }
+        });
       });
     },
   },
   mounted() {
-    console.log(JSON.parse(localStorage.getItem("isrole")));
+     roleList().then(res=>{
+      if(res.data.code==200){
+        this.list=res.data.list
+      }
+    })
   },
 };
 </script>

@@ -37,7 +37,7 @@
 import { successAlert, errAlert } from "../../../utils/alert";
 import { cateAdd, cateEdit, cateUpdate } from "../../../utils/http";
 import path from "path";
-import { mapActions, mapGetters } from 'vuex';
+import { mapActions, mapGetters } from "vuex";
 export default {
   props: ["info"],
   data() {
@@ -51,19 +51,19 @@ export default {
       },
     };
   },
-  computed:{
+  computed: {
     ...mapGetters({
-      "list":"cate/list"
-    })
+      list: "cate/list",
+    }),
   },
   methods: {
     ...mapActions({
-      "reqlist":"cate/reqList"
+      reqlist: "cate/reqList",
     }),
     //取消
     cancel() {
       if (!this.info.isadd) {
-        this.empty()
+        this.empty();
       }
       this.info.isshow = false;
     },
@@ -77,19 +77,34 @@ export default {
         status: 1,
       };
     },
+    checkpre() {
+      return new Promise((resolve) => {
+        if (this.user.pid == "") {
+          errAlert("请选择上级分类");
+          return;
+        }
+        if (this.user.catename == "") {
+          errAlert("分类名称不能为空");
+          return;
+        }
+        resolve();
+      });
+    },
     //添加
     add() {
-      cateAdd(this.user).then((res) => {
-        if (res.data.code == 200) {
-          successAlert(res.data.msg);
-          //弹框取消
-          this.cancel();
-          //列表清空
-          this.empty();
-          //数据刷新
-          this.reqlist()
-          // this.$emit("init");
-        }
+      this.checkpre().then(() => {
+        cateAdd(this.user).then((res) => {
+          if (res.data.code == 200) {
+            successAlert(res.data.msg);
+            //弹框取消
+            this.cancel();
+            //列表清空
+            this.empty();
+            //数据刷新
+            this.reqlist();
+            // this.$emit("init");
+          }
+        });
       });
     },
 
@@ -133,17 +148,19 @@ export default {
     },
     //修改
     update() {
-      cateUpdate(this.user).then((res) => {
-        if (res.data.code === 200) {
-          successAlert(res.data.msg);
-          //弹框消失
-          this.info.isshow = false;
-          //清空数据
-          this.empty();
-          //刷新界面
-          // this.$emit("init");
-          this.reqlist()
-        }
+      this.checkpre().then(() => {
+        cateUpdate(this.user).then((res) => {
+          if (res.data.code === 200) {
+            successAlert(res.data.msg);
+            //弹框消失
+            this.info.isshow = false;
+            //清空数据
+            this.empty();
+            //刷新界面
+            // this.$emit("init");
+            this.reqlist();
+          }
+        });
       });
     },
   },

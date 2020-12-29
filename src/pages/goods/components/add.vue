@@ -1,6 +1,11 @@
 <template>
   <div>
-    <el-dialog :title="info.isadd?'商品添加':'商品修改'" :visible.sync="info.isshow" @closed="cancel">
+    <el-dialog
+      :title="info.isadd?'商品添加':'商品修改'"
+      :visible.sync="info.isshow"
+      @closed="cancel"
+      @opened="opened"
+    >
       <el-form :model="user">
         <el-form-item label="一级分类" label-width="70px">
           <el-select v-model="user.first_cateid" @change="changeFirstCateId">
@@ -24,7 +29,6 @@
               :label="item.catename"
               :value="item.id"
             ></el-option>
-            
           </el-select>
         </el-form-item>
         <el-form-item label="商品名称" label-width="70px">
@@ -44,15 +48,20 @@
           </div>
         </el-form-item>
         <el-form-item label="商品规格" label-width="70px">
-          <el-select v-model="user.specsid" placeholder="请选择">
+          <el-select v-model="user.specsid" placeholder="请选择" @change="changespecsid">
             <!-- 数据遍历 -->
-            <!-- <el-option v-for="item in secondCateList" :key="item.id" :label="item.catename" :value="item.id"></el-option> -->
+            <el-option
+              v-for="item in specslist"
+              :key="item.id"
+              :label="item.specsname"
+              :value="item.id"
+            ></el-option>
           </el-select>
         </el-form-item>
         <el-form-item label="商品属性" label-width="70px">
           <el-select v-model="user.specsattr" placeholder="请选择" multiple>
             <!-- 数据遍历 -->
-            <!-- <el-option v-for="item in list" :key="item.id" :label="item.catename" :value="item.id"></el-option> -->
+            <el-option v-for="item in specslistmodel" :key="item" :label="item" :value="item"></el-option>
           </el-select>
         </el-form-item>
         <el-form-item label="是否新品" label-width="70px">
@@ -67,7 +76,7 @@
           <el-switch v-model="user.status" :active-value="1" :inactive-value="2"></el-switch>
         </el-form-item>
         <el-form-item label="商品描述" label-width="70px">
-          <textarea name id cols="30" rows="10" v-model="user.description"></textarea>
+          <div id="editor" v-if="info.isshow"></div>
         </el-form-item>
         {{user}}
       </el-form>
@@ -81,10 +90,17 @@
 </template>
 
 <script>
+import E from "wangeditor";
 import { successAlert, errAlert } from "../../../utils/alert";
-import { cateList, cateAdd, cateEdit, cateUpdate } from "../../../utils/http";
+import {
+  goodsAdd,
+  goodsEdit,
+  cateList,
+  goodsUpdate,
+} from "../../../utils/http";
 import path from "path";
 import { mapActions, mapGetters } from "vuex";
+
 export default {
   props: ["info"],
   data() {
@@ -106,33 +122,53 @@ export default {
       },
       //二级分类
       secondCateList: [],
+      //规格属性
+      specslistmodel: [],
     };
   },
   computed: {
     ...mapGetters({
       catelist: "cate/list",
+      //规格
+      specslist: "specs/list",
     }),
   },
   mounted() {
+    //看看catelist是否请求过 请求过就不请求了
     if (this.catelist.length === 0) {
       this.reqcatelist();
     }
+    this.reqspecslist(true);
   },
   methods: {
     ...mapActions({
       reqcatelist: "cate/reqList",
+      //规格
+      reqspecslist: "specs/reqList",
+      reqgoodslist: "goods/reqgoodslist",
+      reqTotal: "goods/reqTotal",
     }),
     //一级改变啦
     changeFirstCateId() {
       this.user.second_cateid = "";
       this.getSecondList();
     },
+    //获取二级分类
     getSecondList() {
       cateList({ pid: this.user.first_cateid }).then((res) => {
         if (res.data.code == 200) {
           this.secondCateList = res.data.list;
         }
       });
+    },
+    //商品属性
+    changespecsid() {
+      this.user.specsattr = [];
+      this.getShowSpecsAttr();
+    },
+    getShowSpecsAttr() {
+      let obj = this.specslist.find((item) => item.id == this.user.specsid);
+      this.specslistmodel = obj ? obj.attrs : [];
     },
     //取消
     cancel() {
@@ -142,28 +178,92 @@ export default {
       this.info.isshow = false;
     },
     //清空
-    // empty() {
-    //   this.imgUrl = "";
-    //   this.user = {
-    //     pid: "",
-    //     catename: "",
-    //     img: null,
-    //     status: 1,
-    //   };
-    // },
+    empty() {
+      (this.imgUrl = ""),
+        (this.user = {
+          first_cateid: "",
+          second_cateid: "",
+          goodsname: "",
+          price: "",
+          market_price: "",
+          img: null,
+          description: "",
+          specsid: "",
+          specsattr: [],
+          isnew: 1,
+          ishot: 1,
+          status: 1,
+        }),
+        (this.secondCateList = []),
+        //规格属性
+        (this.specslistmodel = []);
+    },
+    checkProps() {
+      return new Promise((resolve) => {
+        if (this.user.first_cateid === "") {
+          errAlert("一级分类不能为空")
+          return;
+        }
+
+        if (this.user.second_cateid === "") {
+          errAlert("二级分类不能为空");
+          return;
+        }
+        if (this.user.goodsname === "") {
+          errAlert("商品名称不能为空");
+          return;
+        }
+
+        if (this.user.price === "") {
+          errAlert("商品价格不能为空");
+          return;
+        }
+
+        if (this.user.market_price === "") {
+          errAlert("商品市场价格不能为空");
+          return;
+        }
+
+        if (!this.user.img) {
+          errAlert("请上传图片");
+          return;
+        }
+        if (this.user.specsid === "") {
+          errAlert("商品规格不能为空");
+          return;
+        }
+
+        if (this.user.specsattr.length === 0) {
+          errAlert("请选择规格属性");
+          return;
+        }
+        if (this.editor.txt.html() == "") {
+          errAlert("请输入商品描述");
+          return;
+        }
+        resolve();
+      });
+    },
     //添加
     add() {
-      goodsAdd(this.user).then((res) => {
-        if (res.data.code == 200) {
-          successAlert(res.data.msg);
-          //弹框取消
-          this.cancel();
-          //列表清空
-          this.empty();
-          //数据刷新
-          this.reqlist();
-          // this.$emit("init");
-        }
+      this.checkProps().then(() => {
+        this.user.description = this.editor.txt.html();
+        let data = {
+          ...this.user,
+          specsattr: JSON.stringify(this.user.specsattr),
+        };
+        goodsAdd(data).then((res) => {
+          if (res.data.code == 200) {
+            successAlert(res.data.msg);
+            //弹框取消
+            this.cancel();
+            //列表清空
+            this.empty();
+            //数据刷新
+            this.reqgoodslist();
+            this.reqTotal();
+          }
+        });
       });
     },
 
@@ -193,33 +293,58 @@ export default {
       this.user.img = file;
     },
     //编辑
-    // getOne(id) {
-    //   cateEdit({ id: id }).then((res) => {
-    //     if (res.data.code === 200) {
-    //       this.user = res.data.list;
-    //       //处理图片
-    //       this.imgUrl = this.$pre + this.user.img;
+    getOne(id) {
+      goodsEdit({ id: id }).then((res) => {
+        if (res.data.code === 200) {
+          this.user = res.data.list;
+          //重新获取二级分类
+          this.getSecondList();
 
-    //       //补id
-    //       this.user.id = id;
-    //     }
-    //   });
-    // },
+          //处理图片
+          this.imgUrl = this.$pre + this.user.img;
+          //重新获取规格属性
+          this.getShowSpecsAttr();
+
+          this.user.specsattr = JSON.parse(this.user.specsattr);
+
+          //补id
+          this.user.id = id;
+          if (this.editor) {
+            this.editor.txt.html(this.user.description);
+          }
+        }
+      });
+    },
     //修改
-    //   update() {
-    //     cateUpdate(this.user).then((res) => {
-    //       if (res.data.code === 200) {
-    //         successAlert(res.data.msg);
-    //         //弹框消失
-    //         this.info.isshow = false;
-    //         //清空数据
-    //         this.empty();
-    //         //刷新界面
-    //         // this.$emit("init");
-    //         this.reqlist();
-    //       }
-    //     });
-    //   },
+    update() {
+      this.checkProps().then(() => {
+        this.user.description = this.editor.txt.html();
+        let data = {
+          ...this.user,
+          specsattr: JSON.stringify(this.user.specsattr),
+        };
+        goodsUpdate(this.user).then((res) => {
+          if (res.data.code === 200) {
+            successAlert(res.data.msg);
+            //弹框消失
+            this.info.isshow = false;
+            //清空数据
+            this.empty();
+            //刷新界面
+            // this.$emit("init");
+            this.reqgoodslist();
+          }
+        });
+      });
+    },
+    //创建富文本编辑器
+    opened() {
+      //创建编辑器
+      this.editor = new E("#editor");
+      this.editor.create();
+      //赋值
+      this.editor.txt.html(this.user.description);
+    },
   },
 };
 </script>

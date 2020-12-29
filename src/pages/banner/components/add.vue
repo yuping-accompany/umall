@@ -32,14 +32,12 @@
 
 <script>
 import { errAlert, successAlert } from "../../../utils/alert";
-import { bannerAdd, bannerEdit ,bannerUpdate} from "../../../utils/http";
+import { bannerAdd, bannerEdit, bannerUpdate } from "../../../utils/http";
 import path from "path";
 export default {
   props: ["info"],
   data() {
     return {
-      dialogVisible: false,
-      disabled: false,
       user: {
         title: "",
         img: null,
@@ -52,9 +50,9 @@ export default {
   methods: {
     //取消
     cancel() {
-        if(!this.info.isadd){
-            this.empty()
-        }
+      if (!this.info.isadd) {
+        this.empty();
+      }
       this.info.isshow = false;
     },
     empty() {
@@ -65,18 +63,33 @@ export default {
         status: 1,
       };
     },
+    checkpre() {
+     return new Promise((resove) => {
+        if (this.user.title === "") {
+          errAlert("标题不能为空");
+          return;
+        }
+        if (this.user.img == null) {
+          errAlert("图片不能为空");
+          return;
+        }
+        resove();
+      });
+    },
     //添加
     add() {
-      bannerAdd(this.user).then((res) => {
-        if (res.data.code === 200) {
-          successAlert(res.data.msg);
-          //弹框消失
-          this.cancel();
-          //清空
-          this.empty();
-          //刷新
-          this.$emit("init");
-        }
+      this.checkpre().then(() => {
+        bannerAdd(this.user).then((res) => {
+          if (res.data.code === 200) {
+            successAlert(res.data.msg);
+            //弹框消失
+            this.cancel();
+            //清空
+            this.empty();
+            //刷新
+            this.$emit("init");
+          }
+        });
       });
     },
     changeImg(ev) {
@@ -109,17 +122,19 @@ export default {
     },
 
     //修改
-    update(){
-        bannerUpdate(this.user).then(res=>{
-            if(res.data.code===200){
-               successAlert(res.data.msg)
-               //
-               this.cancel()
-               this.empty()
-               this.$emit("init")
-            }
-        })
-    }
+    update() {
+      this.checkpre().then(() => {
+        bannerUpdate(this.user).then((res) => {
+          if (res.data.code === 200) {
+            successAlert(res.data.msg);
+            //
+            this.cancel();
+            this.empty();
+            this.$emit("init");
+          }
+        });
+      });
+    },
   },
 };
 </script>

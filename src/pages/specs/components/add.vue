@@ -28,9 +28,9 @@
 </template>
 
 <script>
-import { mapActions ,mapGetters} from "vuex";
-import { successAlert } from "../../../utils/alert";
-import { specsAdd ,specsEdit,specsUpdate} from "../../../utils/http";
+import { mapActions, mapGetters } from "vuex";
+import { errAlert, successAlert } from "../../../utils/alert";
+import { specsAdd, specsEdit, specsUpdate } from "../../../utils/http";
 export default {
   props: ["info"],
   data() {
@@ -49,12 +49,11 @@ export default {
     }),
   },
   methods: {
-   
     //取消
     cancel() {
-       if(!this.info.isadd){
-         this.empty()
-       }
+      if (!this.info.isadd) {
+        this.empty();
+      }
       this.info.isshow = false;
     },
     //新增规格属性
@@ -76,54 +75,71 @@ export default {
     },
     ...mapActions({
       reqList: "specs/reqList",
-      reqTotal:"specs/reqTotal"
+      reqTotal: "specs/reqTotal",
     }),
+    checkspecs() {
+      return new Promise((resolve) => {
+        if (this.user.specsname == "") {
+          errAlert("规格名称不能为空");
+          return;
+        }
+        if (this.strArr.some((item) => item.value === "")) {
+          errAlert("请输入规格属性");
+          return;
+        }
+        resolve();
+      });
+    },
     //添加
     add() {
-      this.user.attrs = JSON.stringify(
-        this.strArr.map((item) => {
-          return item.value;
-        })
-      );
-      specsAdd(this.user).then((res) => {
-        if (res.data.code == 200) {
-          successAlert(res.data.msg);
-          //弹框消失
-          this.cancel();
-          //清空
-          this.empty();
-          //刷新页面
-          this.reqList()
-          this.reqTotal()
-        }
+      this.checkspecs().then(() => {
+        this.user.attrs = JSON.stringify(
+          this.strArr.map((item) => {
+            return item.value;
+          })
+        );
+        specsAdd(this.user).then((res) => {
+          if (res.data.code == 200) {
+            successAlert(res.data.msg);
+            //弹框消失
+            this.cancel();
+            //清空
+            this.empty();
+            //刷新页面
+            this.reqList();
+            this.reqTotal();
+          }
+        });
       });
     },
     //编辑
-    getOne(id){
-      specsEdit({id:id}).then(res=>{
-        if(res.data.code==200){
-          this.user=res.data.list[0]
-          this.user.attrs=JSON.parse(this.user.attrs)
-          this.strArr=this.user.attrs.map(item=>({value:item}))
+    getOne(id) {
+      specsEdit({ id: id }).then((res) => {
+        if (res.data.code == 200) {
+          this.user = res.data.list[0];
+          this.user.attrs = JSON.parse(this.user.attrs);
+          this.strArr = this.user.attrs.map((item) => ({ value: item }));
         }
-      })
+      });
     },
     //修改
-    update(){
-       this.user.attrs = JSON.stringify(
-        this.strArr.map((item) => {
-          return item.value;
-        })
-      );
-      specsUpdate(this.user).then(res=>{
-        if(res.data.code==200){
-          successAlert(res.data.msg)
-          this.cancel()
-          this.empty()
-          this.reqList()
-        }
-      })
-    }
+    update() {
+      this.checkspecs().then(() => {
+        this.user.attrs = JSON.stringify(
+          this.strArr.map((item) => {
+            return item.value;
+          })
+        );
+        specsUpdate(this.user).then((res) => {
+          if (res.data.code == 200) {
+            successAlert(res.data.msg);
+            this.cancel();
+            this.empty();
+            this.reqList();
+          }
+        });
+      });
+    },
   },
 };
 </script>

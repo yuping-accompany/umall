@@ -9,7 +9,7 @@
 
         <el-form-item label="角色权限" label-width="70px">
           <el-tree
-            :data="data"
+            :data="menuList"
             show-checkbox
             default-expand-all
             node-key="id"
@@ -34,8 +34,8 @@
 
 <script>
 import { secMenu } from "../../../router/index";
-import { roleAdd, roleEdit, roleUpdate } from "../../../utils/http";
-import { successAlert } from "../../../utils/alert";
+import { roleAdd, roleEdit, roleUpdate ,menuList} from "../../../utils/http";
+import { errAlert, successAlert } from "../../../utils/alert";
 export default {
   props: ["info"],
   data() {
@@ -45,18 +45,25 @@ export default {
         menus: [],
         status: 1,
       },
-      data: JSON.parse(localStorage.getItem("list")),
+      menuList: [],
       defaultProps: {
         children: "children",
         label: "title",
       },
     };
   },
+  mounted(){
+    menuList().then(res => {
+      if (res.data.code == 200) {
+        this.menuList = res.data.list;
+      }
+    });
+  },
   methods: {
     //取消
     cancel() {
-       if(!this.info.isupdate){
-        this.$refs.tree.setCheckedKeys([this.empty()])  
+      if (!this.info.isupdate) {
+        this.$refs.tree.setCheckedKeys([this.empty()]);
       }
       this.info.isshow = false;
     },
@@ -67,24 +74,35 @@ export default {
         status: 1,
       };
     },
+    checkpre() {
+      return new Promise((resolve) => {
+        if (this.user.rolename === "") {
+          errAlert("角色名称不能为空");
+          return;
+        }
+        resolve()
+      });
+    },
     //点击确定按钮的时候
     add() {
-      this.user.menus = JSON.stringify(this.$refs.tree.getCheckedKeys());
-      roleAdd(this.user).then((res) => {
-        if (res.data.code === 200) {
-          successAlert(res.data.msg);
-          console.log(this.user);
-          //弹框消失
-          this.cancel();
-          //弹框内容清空
-          this.empty();
-          //刷新页面
-          this.$emit("init");
-        }
+      this.checkpre().then(() => {
+        this.user.menus = JSON.stringify(this.$refs.tree.getCheckedKeys());
+        roleAdd(this.user).then((res) => {
+          if (res.data.code === 200) {
+            successAlert(res.data.msg);
+            console.log(this.user);
+            //弹框消失
+            this.cancel();
+            //弹框内容清空
+            this.empty();
+            //刷新页面
+            this.$emit("init");
+          }
+        });
       });
     },
     //编辑的时候获取那条数据
-   
+
     getOne(id) {
       roleEdit({ id: id }).then((res) => {
         this.user = res.data.list;
@@ -96,16 +114,18 @@ export default {
     },
     //修改数据
     update() {
-      this.user.menus = JSON.stringify(this.$refs.tree.getCheckedKeys())
-      roleUpdate(this.user).then((res) => { 
-        console.log(this.user);
-        if (res.data.code === 200) {
-          successAlert(res.data.msg);
-          //弹框消失
-          this.info.isshow = false;
-          //界面刷新
-          this.$emit("init");
-        }
+      this.checkpre().then(() => {
+        this.user.menus = JSON.stringify(this.$refs.tree.getCheckedKeys());
+        roleUpdate(this.user).then((res) => {
+          console.log(this.user);
+          if (res.data.code === 200) {
+            successAlert(res.data.msg);
+            //弹框消失
+            this.info.isshow = false;
+            //界面刷新
+            this.$emit("init");
+          }
+        });
       });
     },
   },
