@@ -36,6 +36,7 @@
 import { secMenu } from "../../../router/index";
 import { roleAdd, roleEdit, roleUpdate ,menuList} from "../../../utils/http";
 import { errAlert, successAlert } from "../../../utils/alert";
+import { mapActions, mapGetters } from 'vuex';
 export default {
   props: ["info"],
   data() {
@@ -52,6 +53,11 @@ export default {
       },
     };
   },
+  computed:{
+    ...mapGetters({
+      userInfo:"userInfo"
+    })
+  },
   mounted(){
     menuList().then(res => {
       if (res.data.code == 200) {
@@ -60,6 +66,9 @@ export default {
     });
   },
   methods: {
+    ...mapActions({
+      changuser:"changuser"
+    }),
     //取消
     cancel() {
       if (!this.info.isupdate) {
@@ -80,6 +89,10 @@ export default {
           errAlert("角色名称不能为空");
           return;
         }
+        // if(this.user.menus.length===0){
+        //    errAlert("角色权限不能为空");
+        //   return;
+        // }
         resolve()
       });
     },
@@ -120,8 +133,14 @@ export default {
           console.log(this.user);
           if (res.data.code === 200) {
             successAlert(res.data.msg);
+             //如果修改的角色，是当前用户所属的角色，就需要退出登录，重新登录
+          if (this.user.id == this.userInfo.roleid) {
+            this.changuser({});
+            this.$router.push("/login");
+            return;
+          }
             //弹框消失
-            this.info.isshow = false;
+            this.cancel()
             //界面刷新
             this.$emit("init");
           }

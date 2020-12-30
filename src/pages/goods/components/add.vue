@@ -304,6 +304,7 @@ export default {
           this.imgUrl = this.$pre + this.user.img;
           //重新获取规格属性
           this.getShowSpecsAttr();
+          console.log(this.user);
 
           this.user.specsattr = JSON.parse(this.user.specsattr);
 
@@ -323,7 +324,7 @@ export default {
           ...this.user,
           specsattr: JSON.stringify(this.user.specsattr),
         };
-        goodsUpdate(this.user).then((res) => {
+        goodsUpdate(data).then((res) => {
           if (res.data.code === 200) {
             successAlert(res.data.msg);
             //弹框消失

@@ -1,6 +1,8 @@
 import axios from "axios"
 import qs from "qs"
 import Vue from "vue"
+import store from "../store/index"
+import router from "../router/index"
 
 import { errAlert } from "./alert"
 
@@ -12,6 +14,14 @@ Vue.prototype.$pre = "http://localhost:3000"
 // let baseUrl=""
 // Vue.prototype.$pre=""
 
+//请求拦截
+axios.interceptors.request.use(req=>{
+    if(req.url!==baseUrl+"/api/userlogin"){
+        req.headers.authorization=store.state.userInfo.token
+    }
+    return req
+})
+
 
 //响应拦截
 axios.interceptors.response.use(res => {
@@ -21,6 +31,11 @@ axios.interceptors.response.use(res => {
     //如果list为null的话就转成空数组
     if(!res.data.list){
         res.data.list=[]
+    }
+     //掉线处理
+     if(res.data.msg==="登录已过期或访问权限受限"){
+        store.dispatch("changuser",{})
+        router.path("/login")
     }
     console.group("本次请求的地址是" + res.config.url)
     console.log(res);
@@ -36,6 +51,15 @@ function updateFile(user){
         data.append(i,user[i])
     }
     return data
+}
+
+//登录
+export let login =(user)=>{
+    return axios({
+        url:baseUrl+"/api/userlogin",
+        method:"post",
+        data:qs.stringify(user)
+    })
 }
 //菜单管理 start
 
@@ -419,3 +443,50 @@ export let goodsDel=(user)=>{
 
 
 //商品管理end
+
+//限时秒杀start
+//限时秒杀添加 {}
+export let seckAdd=(user)=>{
+    return axios({
+        url:baseUrl +"/api/seckadd",
+        method:"post",
+        data:qs.stringify(user)
+    })
+}
+//限时秒杀列表 { }
+export let seckList=()=>{
+   return axios({
+       url:baseUrl +"/api/secklist",
+       method:"get",
+   })
+}
+//限时秒杀获取（一条）(编辑){id:id}
+
+export let seckEdit=(user)=>{
+   return axios({
+       url:baseUrl +"/api/seckinfo",
+       method:"get",
+       params:user
+   })
+}
+
+//限时秒杀修改{}
+export let seckUpdate=(user)=>{
+   return axios({
+       url:baseUrl +"/api/seckedit",
+       method:"post",
+       data:qs.stringify(user)
+   })
+}
+
+//限时秒杀删除{id}
+export let seckDel=(user)=>{
+   return axios({
+       url:baseUrl +"/api/seckdelete",
+       method:"post",
+       data:qs.stringify(user)
+   })
+}
+
+
+//秒杀end

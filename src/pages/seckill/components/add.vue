@@ -2,22 +2,41 @@
   <div>
     <el-dialog :title="info.isadd?'商品分类添加':'商品分类修改'" :visible.sync="info.isshow" @closed="cancel">
       <el-form :model="user">
-        <el-form-item label="上级分类" label-width="70px">
-          <el-select v-model="user.pid" placeholder="请选择">
-            <el-option label="顶级分类" :value="0"></el-option>
+        <el-form-item label="活动名称" label-width="70px">
+          <el-input v-model="user.title" autocomplete="off"></el-input>
+        </el-form-item>
+        <el-form-item label="活动期限" label-width="70px">
+          <el-time-picker
+            is-range
+            v-model="value1"
+            range-separator="至"
+            start-placeholder="开始时间"
+            end-placeholder="结束时间"
+            placeholder="选择时间范围"
+          ></el-time-picker>
+        </el-form-item>
+        <el-form-item label="一级分类" label-width="70px">
+          <el-select v-model="user.first_cateid" placeholder="请选择" @change="changelistid">
             <!-- 数据遍历 -->
             <el-option v-for="item in list" :key="item.id" :label="item.catename" :value="item.id"></el-option>
           </el-select>
         </el-form-item>
-        <el-form-item label="分类名称" label-width="70px">
-          <el-input v-model="user.catename" autocomplete="off"></el-input>
+        <el-form-item label="二级分类" label-width="70px">
+          <el-select v-model="user.second_cateid" placeholder="请选择" @change="changelistthird">
+            <!-- 数据遍历 -->
+            <el-option v-for="i in secondArr" :key="i.id" :label="i.catename" :value="i.id"></el-option>
+          </el-select>
         </el-form-item>
-        <el-form-item label="图片" label-width="70px" v-if="user.pid!==0">
-          <div class="my-img">
-            <div class="plus">+</div>
-            <img :src="imgUrl" v-if="imgUrl" alt class="img" />
-            <input class="ipt" type="file" v-if="info.isshow" @change="changeImg" />
-          </div>
+        <el-form-item label="商品" label-width="70px">
+          <el-select v-model="user.goodsid" placeholder="请选择">
+            <!-- 数据遍历 -->
+            <el-option
+              v-for="item in thirdArr"
+              :key="item.id"
+              :label="item.goodsname"
+              :value="item.id"
+            ></el-option>
+          </el-select>
         </el-form-item>
         <el-form-item label="状态" label-width="70px">
           <el-switch v-model="user.status" :active-value="1" :inactive-value="2"></el-switch>
@@ -42,24 +61,61 @@ export default {
   props: ["info"],
   data() {
     return {
-      imgUrl: "",
+      value1: [new Date(2016, 9, 10, 8, 40), new Date(2016, 9, 10, 9, 40)],
       user: {
-        pid: "",
-        catename: "",
-        img: null,
+        title: "",
+        begintime: "",
+        endtime: "",
+        first_cateid: "",
+        second_cateid: "",
+        goodsid: "",
         status: 1,
       },
+      //   二级获取
+      secondArr: [],
+      //三级获取
+      thirdArr: [],
     };
   },
   computed: {
     ...mapGetters({
       list: "cate/list",
+      goodslist: "goods/list",
     }),
+  },
+  mounted() {
+    this.reqgoodslist(true);
   },
   methods: {
     ...mapActions({
       reqlist: "cate/reqList",
+      reqgoodslist: "goods/reqgoodslist",
     }),
+    //   二级获取
+    changelistid() {
+      this.user.second_cateid = "";
+      this.user.goodsid=""
+      this.getsecond();
+    },
+    getsecond() {
+      let obj = this.list.find((item) => {
+        return item.id == this.user.first_cateid;
+      });
+      //   console.log(obj);
+      this.secondArr = obj ? obj.children : [];
+    },
+    //三级获取
+    changelistthird() {
+        this.user.goodsid=""
+        this.getthird()
+    },
+    getthird() {
+      let obj = this.goodslist.filter((item) => {
+        //  console.log(item.second_cateid);//5/7/10/5
+        return item.second_cateid === this.user.second_cateid;
+      });
+      this.thirdArr = obj ? obj : [];
+    },
     //取消
     cancel() {
       if (!this.info.isadd) {

@@ -96,6 +96,7 @@ export default {
       return new Promise((resolve) => {
         if (this.user.title === "") {
           errAlert("菜单名称不能为空");
+          return
         }
         resolve();
       });
