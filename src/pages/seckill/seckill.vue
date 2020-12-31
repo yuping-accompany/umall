@@ -12,7 +12,6 @@
 <script>
 import vList from "./components/list";
 import vAdd from "./components/add";
-// import { cateList } from "../../utils/http";
 import{mapGetters, mapActions}from "vuex"
 export default {
   data() {
@@ -21,7 +20,6 @@ export default {
         isshow: false,
         isadd:true
       },
-      // list: [],
     };
   },
   components: {
@@ -30,27 +28,18 @@ export default {
   },
   computed:{
     ...mapGetters({
-      "list":"cate/list"
+      list:"seckill/list"
     })
   },
   methods: {
     ...mapActions({
-      "reqlist":"cate/reqList"
+      reqSeckill:"seckill/reqSeckill"
     }),
     //添加
     willAdd() {
       this.info.isshow = true;
 
       this.info.isadd=true
-    },
-    init() {
-      //分类列表
-      this.reqlist()
-      // cateList({ istree: true }).then((res) => {
-      //   if (res.data.code == 200) {
-      //     this.list = res.data.list;
-      //   }
-      // });
     },
     //编辑
     edit(id){
@@ -61,8 +50,7 @@ export default {
     }
   },
   mounted() {
-    // this.init()
-     this.reqlist()
+    //  this.reqSeckill()
   },
 };
 </script>

@@ -1,19 +1,19 @@
 <template>
   <div>
-    <el-dialog :title="info.isadd?'商品分类添加':'商品分类修改'" :visible.sync="info.isshow" @closed="cancel">
+    <el-dialog :title="info.isadd?'秒杀商品添加':'秒杀商品修改'" :visible.sync="info.isshow" @closed="cancel">
       <el-form :model="user">
         <el-form-item label="活动名称" label-width="70px">
           <el-input v-model="user.title" autocomplete="off"></el-input>
         </el-form-item>
         <el-form-item label="活动期限" label-width="70px">
-          <el-time-picker
-            is-range
-            v-model="value1"
-            range-separator="至"
-            start-placeholder="开始时间"
-            end-placeholder="结束时间"
-            placeholder="选择时间范围"
-          ></el-time-picker>
+          <el-date-picker
+            v-model="value2"
+            type="datetimerange"
+            align="right"
+            start-placeholder="开始日期"
+            end-placeholder="结束日期"
+            :default-time="['12:00:00', '08:00:00']"
+          ></el-date-picker>
         </el-form-item>
         <el-form-item label="一级分类" label-width="70px">
           <el-select v-model="user.first_cateid" placeholder="请选择" @change="changelistid">
@@ -42,6 +42,7 @@
           <el-switch v-model="user.status" :active-value="1" :inactive-value="2"></el-switch>
         </el-form-item>
         {{user}}
+        {{value2}}
       </el-form>
       <div slot="footer" class="dialog-footer">
         <el-button @click="cancel">取 消</el-button>
@@ -54,14 +55,14 @@
 
 <script>
 import { successAlert, errAlert } from "../../../utils/alert";
-import { cateAdd, cateEdit, cateUpdate } from "../../../utils/http";
+import { seckEdit, seckUpdate, seckAdd } from "../../../utils/http";
 import path from "path";
 import { mapActions, mapGetters } from "vuex";
 export default {
   props: ["info"],
   data() {
     return {
-      value1: [new Date(2016, 9, 10, 8, 40), new Date(2016, 9, 10, 9, 40)],
+      value2: [],
       user: {
         title: "",
         begintime: "",
@@ -77,24 +78,44 @@ export default {
       thirdArr: [],
     };
   },
+  filters: {
+    formatDate: function (value) {
+      let date = new Date(value);
+      let y = date.getFullYear();
+      let MM = date.getMonth() + 1;
+      MM = MM < 10 ? "0" + MM : MM;
+      let d = date.getDate();
+      d = d < 10 ? "0" + d : d;
+      let h = date.getHours();
+      h = h < 10 ? "0" + h : h;
+      let m = date.getMinutes();
+      m = m < 10 ? "0" + m : m;
+      let s = date.getSeconds();
+      s = s < 10 ? "0" + s : s;
+      return y + "-" + MM + "-" + d + " " + h + ":" + m + ":" + s;
+    },
+  },
   computed: {
     ...mapGetters({
       list: "cate/list",
       goodslist: "goods/list",
+      seckilllist: "seckill/list",
     }),
   },
   mounted() {
+    this.reqlist();
     this.reqgoodslist(true);
   },
   methods: {
     ...mapActions({
       reqlist: "cate/reqList",
       reqgoodslist: "goods/reqgoodslist",
+      reqSeckill: "seckill/reqSeckill",
     }),
     //   二级获取
     changelistid() {
       this.user.second_cateid = "";
-      this.user.goodsid=""
+      this.user.goodsid = "";
       this.getsecond();
     },
     getsecond() {
@@ -106,8 +127,8 @@ export default {
     },
     //三级获取
     changelistthird() {
-        this.user.goodsid=""
-        this.getthird()
+      this.user.goodsid = "";
+      this.getthird();
     },
     getthird() {
       let obj = this.goodslist.filter((item) => {
@@ -125,22 +146,41 @@ export default {
     },
     //清空
     empty() {
-      this.imgUrl = "";
-      this.user = {
-        pid: "",
-        catename: "",
-        img: null,
+      (this.user = {
+        title: "",
+        begintime: "",
+        endtime: "",
+        first_cateid: "",
+        second_cateid: "",
+        goodsid: "",
         status: 1,
-      };
+      }),
+        //   二级获取
+        (this.secondArr = []),
+        //三级获取
+        (this.thirdArr = []);
+      this.value2 = [];
     },
     checkpre() {
       return new Promise((resolve) => {
-        if (this.user.pid === "") {
-          errAlert("请选择上级分类");
+        if (this.user.title === "") {
+          errAlert("活动名称不能为空");
           return;
         }
-        if (this.user.catename == "") {
-          errAlert("分类名称不能为空");
+        if (this.value2 === []) {
+          errAlert("活动开始时间不能为空");
+          return;
+        }
+        if (this.user.first_cateid == "") {
+          errAlert("一级分类名称不能为空");
+          return;
+        }
+        if (this.user.second_cateid == "") {
+          errAlert("二级分类名称不能为空");
+          return;
+        }
+        if (this.user.goodsid == "") {
+          errAlert("商品名称不能为空");
           return;
         }
         resolve();
@@ -149,7 +189,9 @@ export default {
     //添加
     add() {
       this.checkpre().then(() => {
-        cateAdd(this.user).then((res) => {
+        this.user.begintime = Date.parse(this.value2[0]) + "";
+        this.user.endtime = Date.parse(this.value2[1]) + "";
+        seckAdd(this.user).then((res) => {
           if (res.data.code == 200) {
             successAlert(res.data.msg);
             //弹框取消
@@ -157,46 +199,26 @@ export default {
             //列表清空
             this.empty();
             //数据刷新
-            this.reqlist();
-            // this.$emit("init");
+            this.reqSeckill();
           }
         });
       });
     },
 
-    //上传文件
-    changeImg(ev) {
-      let file = ev.target.files[0];
-      console.log(file);
-      //大于2M提示不能上传 size是B
-      if (file.size > 2 * 1024 * 1024) {
-        errAlert("图片大小要小于2M");
-        return;
-      }
-      //后缀名得是图片类型的
-      //截取最后一个.后面的
-      // let extname=file.name.slice(file.name.lastIndexOf('.'))
-      //node自带的
-      let extname = path.extname(file.name);
-      console.log(extname);
-      let arr = [".jpg", ".jpeg", ".gif", ".png"];
-      if (!arr.some((item) => item === extname)) {
-        errAlert("请上传图片格式");
-        return;
-      }
-
-      //上传的文件生成地址
-      this.imgUrl = URL.createObjectURL(file);
-      this.user.img = file;
-    },
     //编辑
     getOne(id) {
-      cateEdit({ id: id }).then((res) => {
+      seckEdit({ id: id }).then((res) => {
         if (res.data.code === 200) {
           this.user = res.data.list;
-          //处理图片
-          this.imgUrl = this.$pre + this.user.img;
-
+          this.user.begintime = this.$options.filters["formatDate"](
+            JSON.parse(this.user.begintime)
+          );
+          this.user.endtime = this.$options.filters["formatDate"](
+            JSON.parse(this.user.endtime)
+          );
+          this.value2.push(this.user.begintime, this.user.endtime);
+          this.getsecond();
+          this.getthird();
           //补id
           this.user.id = id;
         }
@@ -205,16 +227,17 @@ export default {
     //修改
     update() {
       this.checkpre().then(() => {
-        cateUpdate(this.user).then((res) => {
+        this.user.begintime = Date.parse(this.value2[0]) + "";
+        this.user.endtime = Date.parse(this.value2[1]) + "";
+        seckUpdate(this.user).then((res) => {
           if (res.data.code === 200) {
             successAlert(res.data.msg);
             //弹框消失
-            this.info.isshow = false;
+            this.cancel();
             //清空数据
             this.empty();
             //刷新界面
-            // this.$emit("init");
-            this.reqlist();
+            this.reqSeckill();
           }
         });
       });

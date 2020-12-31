@@ -6,8 +6,8 @@
       row-key="id"
       border
       :tree-props="{children: 'children', hasChildren: 'hasChildren'}"
-    >
-      <el-table-column prop="id" label="活动名称" sortable width="180"></el-table-column>
+    > 
+      <el-table-column prop="title" label="活动名称" sortable width="180"></el-table-column>
        <el-table-column prop="status" label="状态">
         <template slot-scope="scope">
           <el-button type="primary" v-if="scope.row.status==1">启用</el-button>
@@ -20,6 +20,7 @@
            
           <del-btn @config="del(scope.row.id)">删除</del-btn>
         </template>
+      
       </el-table-column>
     </el-table>
   </div>
@@ -28,26 +29,28 @@
 <script>
 import { mapActions, mapGetters } from 'vuex';
 import { successAlert } from '../../../utils/alert';
-import {cateDel} from "../../../utils/http"
+import {seckDel} from "../../../utils/http"
 export default {
-    // props:["list"],
+  mounted(){
+    this.reqSeckill()
+  },
     computed:{
       ...mapGetters({
-        "list":"cate/list"
+         list:"seckill/list"
       })
     },
   methods:{
     ...mapActions({
-      "reqlist":"cate/reqList"
+      reqSeckill:"seckill/reqSeckill"
     }),
       //删除
       del(id){
-          cateDel({id:id}).then(res=>{
+          seckDel({id:id}).then(res=>{
               if(res.data.code==200){
                   successAlert(res.data.msg)
                   //刷新页面
-                  // this.$emit("init")
-                  this.reqlist()
+                  
+                  this.reqSeckill()
               }
           })
       },

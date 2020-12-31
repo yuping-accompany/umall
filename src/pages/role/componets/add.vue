@@ -89,17 +89,17 @@ export default {
           errAlert("角色名称不能为空");
           return;
         }
-        // if(this.user.menus.length===0){
-        //    errAlert("角色权限不能为空");
-        //   return;
-        // }
+        if(this.user.menus==='[]'){
+           errAlert("角色权限不能为空");
+          return;
+        }
         resolve()
       });
     },
     //点击确定按钮的时候
     add() {
-      this.checkpre().then(() => {
-        this.user.menus = JSON.stringify(this.$refs.tree.getCheckedKeys());
+      this.user.menus = JSON.stringify(this.$refs.tree.getCheckedKeys());
+      this.checkpre().then(() => { 
         roleAdd(this.user).then((res) => {
           if (res.data.code === 200) {
             successAlert(res.data.msg);
